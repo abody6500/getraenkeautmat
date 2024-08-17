@@ -89,7 +89,7 @@ public class GetraenkeautomatServiceImpl implements GetraenkeautomatService {
 		List<Muenze> wechselGeldMenge = new ArrayList<>();
 		Muenze[] muenzenArten = Muenze.values();
 
-		// Sortierung von Große (2 Euro) zu kleine (10 Cent)
+		// Sortierung von großen (2 Euro) zu kleinen (10 Cent)
 		Arrays.sort(muenzenArten, (a, b) -> Integer.compare(b.getWert(), a.getWert()));
 
 		for (Muenze muenze : muenzenArten) {
