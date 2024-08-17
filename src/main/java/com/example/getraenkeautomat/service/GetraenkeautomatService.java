@@ -6,6 +6,6 @@ import com.example.getraenkeautomat.model.Muenze;
 
 public interface GetraenkeautomatService {
 	void Muenzenfuellen(Muenze muenze, int menge);
-	void GetraenkAuffuellen(Getraenk getraenkAuswahl, int preis);
+	void GetraenkAuffuellen(Getraenk getraenk, int menge);
 	GetraenkUndWechselgeld kaufen(Getraenk gewuenschteGetraenk, Muenze... einzahlung);
 }

@@ -7,108 +7,133 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Diese Testklasse enthält Unit-Tests für die Klasse {@link GetraenkeautomatServiceImpl}
+ */
 class GetraenkeautomatServiceImplTest {
 
     private GetraenkeautomatServiceImpl getraenkeautomatService;
-
+    private Map<Getraenk, Integer> getraenkeBestand;
+    private Map<Muenze, Integer> muenzenBestand;
+    /**
+     * Initialisierung vor jedem Test.
+     */
     @BeforeEach
     void setUp() {
-        // Initialize the service with empty stock
-        getraenkeautomatService = new GetraenkeautomatServiceImpl(new HashMap<>(), new HashMap<>());
+        getraenkeBestand = new HashMap<>();
+        muenzenBestand = new HashMap<>();
+
+        getraenkeautomatService = new GetraenkeautomatServiceImpl(getraenkeBestand, muenzenBestand);
     }
 
+    /**
+     * Testet das Auffüllen von Getränken.
+     */
     @Test
     void testGetraenkAuffuellen() {
         Getraenk cola = new Getraenk("Cola", 120);
         getraenkeautomatService.GetraenkAuffuellen(cola, 10);
-
-        // This test is a setup step, and correctness will be confirmed through purchase tests
+        
+        assertTrue(getraenkeBestand.containsKey(cola));
+        assertEquals(10, getraenkeBestand.get(cola));
     }
 
+    /**
+     * Testet das Auffüllen von Münzen.
+     */
     @Test
     void testMuenzenfuellen() {
         getraenkeautomatService.Muenzenfuellen(Muenze.EIN_EURO, 5);
         getraenkeautomatService.Muenzenfuellen(Muenze.ZWEI_EURO, 2);
-
-        // As with drinks, correctness of filling will be tested through purchase tests
+        
+        assertEquals(5, muenzenBestand.get(Muenze.EIN_EURO));
+        assertEquals(2, muenzenBestand.get(Muenze.ZWEI_EURO));
     }
 
+    /**
+     * Testet einen erfolgreichen Getränkekauf.
+     */
     @Test
-    void testKaufen_SuccessfulPurchase() {
-        // Arrange
-        Getraenk cola = new Getraenk("Cola", 120);  // 1.20 Euro
+    void testKaufen_Erfolgreich() {
+        Getraenk cola = new Getraenk("Cola", 120);
         getraenkeautomatService.GetraenkAuffuellen(cola, 10);
         getraenkeautomatService.Muenzenfuellen(Muenze.ZWANZIG_CENT, 5);
         getraenkeautomatService.Muenzenfuellen(Muenze.ZEHN_CENT, 5);
         getraenkeautomatService.Muenzenfuellen(Muenze.FUENFZIG_CENT, 5);
+        getraenkeautomatService.Muenzenfuellen(Muenze.EIN_EURO, 5);
 
-        // Act
         GetraenkUndWechselgeld result = getraenkeautomatService.kaufen(cola, Muenze.ZWEI_EURO);
 
-        // Assert
         assertEquals(cola, result.getGetraenk());
         assertNotNull(result.getWechselgeld());
         assertFalse(result.getWechselgeld().isEmpty());
-        assertEquals(80, result.getWechselgeld().stream().mapToInt(Muenze::getWert).sum());  // 80 Cent change
+        assertEquals(80, result.getWechselgeld().stream().mapToInt(Muenze::getWert).sum());
+        assertEquals(4, muenzenBestand.get(Muenze.ZWANZIG_CENT));
+        assertEquals(4, muenzenBestand.get(Muenze.ZWANZIG_CENT));
+        assertEquals(4, muenzenBestand.get(Muenze.ZWANZIG_CENT));
+        assertEquals(5, muenzenBestand.get(Muenze.EIN_EURO));
     }
 
+    /**
+     * Testet einen Kauf mit unzureichenden Geld.
+     */
     @Test
-    void testKaufen_InsufficientFunds() {
-        // Arrange
-        Getraenk wasser = new Getraenk("Wasser", 100);  // 1.00 Euro
+    void testKaufen_UnzureichendenGeld() {
+        Getraenk wasser = new Getraenk("Wasser", 100);
         getraenkeautomatService.GetraenkAuffuellen(wasser, 10);
 
-        // Act & Assert
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            getraenkeautomatService.kaufen(wasser, Muenze.FUENFZIG_CENT);  // Only 0.50 Euro
+            getraenkeautomatService.kaufen(wasser, Muenze.FUENFZIG_CENT);
         });
 
-        assertTrue(exception.getMessage().contains("Die eingezahlte Münzen reichen nicht aus"));
+        assertTrue(exception.getMessage().contains("Die eingezahlte Münzen reichen nicht aus für das Getränk " + wasser.getName()));
     }
 
+    /**
+     * Testet einen Kauf, wenn das Getränk nicht verfügbar ist.
+     */
     @Test
     void testKaufen_GetraenkNichtVerfuegbar() {
-        // Arrange
-        Getraenk saft = new Getraenk("Saft", 150);  // 1.50 Euro
+        Getraenk saft = new Getraenk("Saft", 150);
 
-        // Act & Assert
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             getraenkeautomatService.kaufen(saft, Muenze.ZWEI_EURO);
         });
 
-        assertTrue(exception.getMessage().contains("ist nicht verfügbar"));
+        assertTrue(exception.getMessage().equals("Die ausgewählte Getrank " + saft.getName() + " ist nicht verfügbar."));
     }
 
+    /**
+     * Testet einen Kauf, wenn nicht genug Wechselgeld verfügbar ist.
+     */
     @Test
     void testKaufen_WechselgeldNichtAusreichend() {
-        // Arrange
-        Getraenk cola = new Getraenk("Cola", 120);  // 1.20 Euro
+        Getraenk cola = new Getraenk("Cola", 120);
         getraenkeautomatService.GetraenkAuffuellen(cola, 10);
 
-        // Not enough change available
-        getraenkeautomatService.Muenzenfuellen(Muenze.ZEHN_CENT, 1);  // Only 0.10 Euro change available
+        getraenkeautomatService.Muenzenfuellen(Muenze.ZEHN_CENT, 1);
 
-        // Act & Assert
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            getraenkeautomatService.kaufen(cola, Muenze.ZWEI_EURO);  // Need 0.80 Euro change
+            getraenkeautomatService.kaufen(cola, Muenze.ZWEI_EURO);
         });
 
         assertTrue(exception.getMessage().contains("Es gibt keine ausreichende Wechselgeld"));
     }
 
+    /**
+     * Testet einen Kauf mit exakt passendem Betrag.
+     */
     @Test
     void testKaufen_ExactAmountNoChange() {
-        // Arrange
-        Getraenk cola = new Getraenk("Cola", 120);  // 1.20 Euro
+        Getraenk cola = new Getraenk("Cola", 120);
         getraenkeautomatService.GetraenkAuffuellen(cola, 10);
 
-        // Act
         GetraenkUndWechselgeld result = getraenkeautomatService.kaufen(cola, Muenze.EIN_EURO, Muenze.ZWANZIG_CENT);
 
-        // Assert
         assertEquals(cola, result.getGetraenk());
         assertNotNull(result.getWechselgeld());
         assertTrue(result.getWechselgeld().isEmpty());
